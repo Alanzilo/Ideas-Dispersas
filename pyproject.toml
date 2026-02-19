@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "studyflow-local"
+version = "1.0.0"
+description = "Offline study workflow CLI for PDF indexing, preview and build"
+requires-python = ">=3.11"
+dependencies = [
+  "PyMuPDF>=1.24,<1.27"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

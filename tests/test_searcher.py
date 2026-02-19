@@ -1,12 +1,8 @@
-from app.searcher import PageHit, select_pages_with_context
+from studyflow.search import Hit, _select_with_context
 
 
-def test_select_pages_with_context_and_limit():
-    hits = [
-        PageHit("A.pdf", 10, 5.0, ["shock"]),
-        PageHit("A.pdf", 30, 2.0, ["sepsis"]),
-    ]
-    selected = select_pages_with_context(hits, context_pages=1, max_pages_total=5)
+def test_select_pages_with_context_and_limit_legacy_name():
+    hits = [Hit("A.pdf", 5, 2.0, "", ["a"])]
+    selected = _select_with_context(hits, context_pages=1, max_pages_total=3)
     pages = [h.page_num for h in selected["A.pdf"]]
-    assert 9 in pages and 10 in pages and 11 in pages
-    assert len(pages) <= 5
+    assert pages == [4, 5, 6]

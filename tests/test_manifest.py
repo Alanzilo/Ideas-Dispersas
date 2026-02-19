@@ -1,18 +1,18 @@
-from app.main import _build_manifest
-from app.searcher import PageHit
+from studyflow.cli import _manifest
+from studyflow.search import Hit
 
 
 def test_manifest_structure():
-    search_result = {
-        "keywords": ["shock", "septico"],
+    result = {
+        "applied_synonyms": ["shock septico"],
         "selected_pages": {
             "Fuentes/A.pdf": [
-                PageHit("Fuentes/A.pdf", 1, 3.0, ["shock"]),
-                PageHit("Fuentes/A.pdf", 2, 0.5, ["context"]),
+                Hit("Fuentes/A.pdf", 1, 1.4, "text", ["shock"]),
+                Hit("Fuentes/A.pdf", 2, 0.3, "ctx", ["context"]),
             ]
         },
     }
-    manifest = _build_manifest("2026-02-19", "Shock séptico", {"x": 1}, search_result, [])
+    manifest = _manifest("2026-02-19", "Shock séptico", {"x": 1}, result, [])
     assert manifest["date"] == "2026-02-19"
     assert manifest["topic"] == "Shock séptico"
     assert "pages_included_by_source" in manifest

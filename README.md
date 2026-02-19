@@ -1,79 +1,96 @@
-# StudyFlow Local (Opción 1)
+# StudyFlow (local, offline)
 
-Sistema local en Python para automatizar el flujo:
-`tema del día -> búsqueda en PDFs fuente -> PDF recortado + prompt para NotebookLM + manifest de trazabilidad`.
+StudyFlow automatiza tu flujo diario de estudio: indexa PDFs locales, encuentra páginas relevantes por tema, permite **previsualizar** resultados y compila un PDF final + prompt para NotebookLM + manifest de trazabilidad.
 
-## Estructura esperada
+> No automatiza NotebookLM. El flujo termina en `PDF + prompt` listos para subir/pegar manualmente.
+
+## Requisitos
+
+- Python 3.11+
+- SQLite con FTS5 (se valida con `doctor`)
+- PyMuPDF
+
+## Instalación
+
+### Windows (PowerShell)
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+```
+
+### macOS/Linux
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+## Quickstart real (diario)
+
+```bash
+python -m studyflow init
+python -m studyflow doctor
+python -m studyflow index
+python -m studyflow preview --topic "Shock séptico"
+python -m studyflow build --topic "Shock séptico"
+```
+
+## Comandos CLI
+
+- `python -m studyflow init`
+  - Crea `Temario/`, `Fuentes/`, `Indice/`, `Salida/`.
+  - Crea `config.json` y `synonyms.json` si no existen.
+  - Verifica escritura y FTS5.
+
+- `python -m studyflow doctor`
+  - Verifica Python, PyMuPDF, FTS5, rutas y PDFs.
+  - Intenta extracción de texto de un PDF de muestra.
+  - Si falla, explica por qué y cómo arreglar.
+
+- `python -m studyflow index`
+  - Indexa incrementalmente `Fuentes/*.pdf` en `Indice/index.db`.
+  - Guarda metadata: hash, mtime, size, pages, `requires_ocr`, `last_indexed`.
+  - Si un PDF falla/corrupto: lo reporta y sigue.
+
+- `python -m studyflow preview --topic "..."` o `--date YYYY-MM-DD`
+  - No genera archivos.
+  - Muestra páginas candidatas con score y snippet.
+  - Muestra sinónimos aplicados.
+
+- `python -m studyflow build --topic "..." [--dry-run] [--open]`
+  - Genera:
+    - `Salida/YYYY-MM-DD_tema.pdf`
+    - `Salida/YYYY-MM-DD_tema_prompt.txt`
+    - `Salida/YYYY-MM-DD_tema_manifest.json`
+  - `--dry-run` muestra qué haría sin escribir.
+  - `--open` intenta abrir carpeta de salida en Windows.
+
+## Estructura de carpetas
 
 ```text
 Temario/
   temario.pdf
-  temario.csv   # fallback recomendado
+  temario.csv
 Fuentes/
   *.pdf
-Indice/         # se crea automáticamente
-Salida/         # se crea automáticamente
+Indice/
+  index.db
+Salida/
+  *.pdf
+  *_prompt.txt
+  *_manifest.json
+  log.txt
 config.json
 synonyms.json
+demo/temario.csv
 ```
 
-## Instalación
+## Config (`config.json`)
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## Uso CLI
-
-### 1) Indexar fuentes (incremental)
-
-```bash
-python -m app.main index
-```
-
-- Extrae texto por página de `Fuentes/*.pdf`.
-- Guarda índice en SQLite FTS5 (`Indice/index.db`).
-- Detecta PDFs sin texto y marca `requires_ocr=true` sin romper la ejecución.
-- Reindexa solo archivos nuevos/cambiados (hash + mtime).
-
-### 2) Construir salida diaria
-
-Por fecha:
-
-```bash
-python -m app.main build --date 2026-02-19
-```
-
-Por tema directo:
-
-```bash
-python -m app.main build --topic "Shock séptico"
-```
-
-Si no se pasa `--date` ni `--topic`, intenta tomar el tema del día (fecha local) desde temario.
-
-## Salidas generadas
-
-En `Salida/`:
-- `YYYY-MM-DD_{topic}.pdf` (portada + páginas relevantes)
-- `YYYY-MM-DD_{topic}_prompt.txt` (prompt para NotebookLM)
-- `YYYY-MM-DD_{topic}_manifest.json` (trazabilidad)
-- `log.txt` (logs del run)
-
-## Formato `temario.csv`
-
-UTF-8 con columnas:
-
-```csv
-date,topic
-2026-02-19,"Shock séptico: diagnóstico y manejo"
-```
-
-## Configuración (`config.json`)
-
-Campos usados:
+Campos:
 - `sources_dir`
 - `syllabus_pdf_path`
 - `syllabus_csv_path`
@@ -86,22 +103,50 @@ Campos usados:
 - `group_by_source`
 - `add_source_separators`
 
-## Decisiones del MVP
+## Synonyms (`synonyms.json`)
 
-- Sin OCR en esta versión (solo detección y reporte `requires_ocr`).
-- Parser de PDF del temario es heurístico; si la confianza es baja, usa CSV.
-- Scoring simple: keywords + frase completa + bonificación de proximidad simple.
-- Copia páginas originales en el PDF final (no rasteriza).
+```json
+{
+  "shock septico": ["sepsis", "septic shock"]
+}
+```
+
+## Troubleshooting
+
+### “SQLite FTS5: NO”
+- Tu runtime de SQLite no trae FTS5.
+- Solución: usar otra instalación de Python (normalmente oficial 3.11+).
+
+### “PyMuPDF no instalado”
+- Ejecuta `pip install pymupdf`.
+
+### “PDF escaneado / requires_ocr”
+- StudyFlow no hace OCR en este MVP.
+- Usa una versión OCR del PDF o conviértelo externamente.
+
+### “No hubo hits”
+- Baja `score_threshold` en `config.json`.
+- Añade sinónimos en `synonyms.json`.
+- Prueba un tema más general en `preview`.
+
+### Errores detallados
+- Usa `--debug` para stacktrace completo.
+
+## Demo mínima
+
+1. Copia un PDF con texto a `Fuentes/`.
+2. Copia `demo/temario.csv` a `Temario/temario.csv`.
+3. Corre `index`, luego `preview --date 2026-02-19`, y luego `build`.
 
 ## Tests
 
 ```bash
-pytest -q
+pytest
 ```
 
-Incluye tests para:
-- `sanitize_filename`
-- selección de páginas con contexto
-- parser de CSV
-- estructura base del manifest
-
+Cobertura mínima:
+- normalización de acentos
+- sanitize filename
+- selección con contexto
+- parsing de temario CSV
+- schema básico de manifest
