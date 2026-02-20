@@ -1,0 +1,13 @@
+{
+  "sources_dir": "Fuentes",
+  "syllabus_pdf_path": "Temario/temario.pdf",
+  "syllabus_csv_path": "Temario/temario.csv",
+  "output_dir": "Salida",
+  "index_db_path": "Indice/index.db",
+  "context_pages": 1,
+  "max_pages_total": 60,
+  "top_k_results": 40,
+  "score_threshold": 0.5,
+  "group_by_source": true,
+  "add_source_separators": false
+}
